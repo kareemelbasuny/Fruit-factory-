@@ -1,0 +1,57 @@
+name: Generate Fruit Short
+
+on:
+  workflow_dispatch:
+    inputs:
+      language:
+        description: Language / اللغة
+        required: true
+        default: both
+        type: choice
+        options: [both, en, ar]
+      theme:
+        description: Story theme
+        required: true
+        default: surprise
+        type: choice
+        options: [surprise, funny]
+      seed:
+        description: Optional fixed seed
+        required: false
+        default: ""
+  # To enable automatic daily generation, uncomment the next two lines:
+  # schedule:
+  #   - cron: "0 17 * * *"
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: src
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg espeak-ng fonts-dejavu-core
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+      - name: Generate videos
+        shell: bash
+        run: |
+          ARGS=(--language "${{ inputs.language || 'both' }}" --theme "${{ inputs.theme || 'surprise' }}")
+          if [ -n "${{ inputs.seed }}" ]; then ARGS+=(--seed "${{ inputs.seed }}"); fi
+          python -m fruit_factory.main "${ARGS[@]}"
+      - name: Upload generated package
+        uses: actions/upload-artifact@v4
+        with:
+          name: fruit-shorts-${{ github.run_number }}
+          path: output/
+          retention-days: 7
