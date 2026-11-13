@@ -27,7 +27,41 @@ public final class DeviceActionHandler {
       String type = limited(data,"type",24);
       String summary;
       Intent intent;
+      boolean immediateNavigation=false;
       switch(type){
+        case "open_app": {
+          String app=limited(data,"app",20);
+          String pkg;
+          switch(app){
+            case "youtube":pkg="com.google.android.youtube";break;
+            case "soundcloud":pkg="com.soundcloud.android";break;
+            case "browser":pkg="com.android.chrome";break;
+            case "maps":pkg="com.google.android.apps.maps";break;
+            case "gmail":pkg="com.google.android.gm";break;
+            case "whatsapp":pkg="com.whatsapp";break;
+            case "calendar":pkg="com.google.android.calendar";break;
+            case "clock":pkg="com.google.android.deskclock";break;
+            default:throw new Exception("App not supported");
+          }
+          Intent installed=activity.getPackageManager().getLaunchIntentForPackage(pkg);
+          if(installed!=null){activity.startActivity(installed);return;}
+          String url;
+          switch(app){
+            case "youtube":url="https://www.youtube.com/";break;
+            case "soundcloud":url="https://soundcloud.com/";break;
+            case "maps":url="https://www.google.com/maps";break;
+            case "gmail":url="https://mail.google.com/";break;
+            case "whatsapp":url="https://www.whatsapp.com/";break;
+            case "calendar":url="https://calendar.google.com/";break;
+            case "clock":activity.startActivity(new Intent(AlarmClock.ACTION_SHOW_ALARMS));return;
+            default:url="https://www.google.com/";break;
+          }
+          intent=new Intent(Intent.ACTION_VIEW,Uri.parse(url));
+          immediateNavigation=true;
+          summary="Open " + app;
+          break;
+        }
+
         case "alarm": {
           String time=limited(data,"time",5);
           if(!time.matches("(?:[01][0-9]|2[0-3]):[0-5][0-9]")) throw new Exception("Invalid alarm time");
@@ -107,6 +141,14 @@ public final class DeviceActionHandler {
           break;
         }
         default:throw new Exception("Unsupported device action");
+      }
+      if("media".equals(type)||"web-search".equals(type)||immediateNavigation){
+        try {activity.startActivity(intent);}catch(ActivityNotFoundException e){
+          if("media".equals(type)){
+            try {intent.setPackage(null);activity.startActivity(intent);}catch(ActivityNotFoundException ignored){Toast.makeText(activity,"No compatible app or browser found",Toast.LENGTH_LONG).show();}
+          }else Toast.makeText(activity,"No browser or compatible app installed",Toast.LENGTH_LONG).show();
+        }
+        return;
       }
       final Intent safe = intent;
       new AlertDialog.Builder(activity).setTitle("RAAD — Review action")

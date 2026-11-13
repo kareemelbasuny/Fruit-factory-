@@ -69,7 +69,7 @@ async function executeActionWithApproval(action){
  const validated=checkDeviceAction(action.type,action);
  if(!globalThis.RaadAndroid?.performDeviceAction)throw Error('Device actions require Android APK.');
  const label=describeAction(validated);
- if(!confirm(`RAAD wants to prepare this Android action. Review before proceeding:\n\n${label}\n\nThe target app still requires your final confirmation.`))return false;
+ if(!['media','web-search','open_app'].includes(validated.type) && !confirm(`RAAD wants to prepare this Android action. Review before proceeding:\n\n${label}\n\nThe target app still requires your final confirmation.`))return false;
  globalThis.RaadAndroid.performDeviceAction(JSON.stringify(validated));return true;
 }
 async function consumeWakeCommand(){
@@ -190,7 +190,7 @@ async function doAssistant(text){
    const direct=parseDeviceCommand(input);
    if(direct){
      const approved=await executeActionWithApproval(direct);
-     reply={mode:'device',text:approved?`Prepared ${direct.type} in Android. ${DEVICE_COPY[direct.type]}`:'Device action cancelled.'};
+     reply={mode:'device',text:approved?`${["media","web-search","open_app"].includes(direct.type)?"Requested":"Prepared"} ${direct.type} in Android. ${DEVICE_COPY[direct.type]}`:'Device action cancelled.'};
    }else{
      if(state.chatGPT.connected&&globalThis.RaadAndroid?.askChatGPT)reply=await nativeChatGPTReply(input,rowsSorted('messages').reverse().filter(m=>m.id!==userMessage.id).slice(-8),state.prefs.responseLanguage);
      else if(state.prefs.aiEndpoint&&cloudConnected())reply=await liveReply(input,{endpoint:state.prefs.aiEndpoint,accessToken:cloudAccessToken(),language:state.prefs.responseLanguage,history:rowsSorted('messages').reverse().slice(-14)});

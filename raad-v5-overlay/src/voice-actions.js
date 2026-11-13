@@ -14,7 +14,7 @@ export function extractModelAction(raw='') {
       return {text:display||'I prepared a new task for your approval.',action:{type:'task',title},error:''};
     }
     const action=checkDeviceAction(candidate.type,candidate);
-    if(!['alarm','sms','whatsapp','email','calendar','dial','contacts','media','web-search'].includes(action.type))throw Error('Action not approved for AI');
+    if(!['alarm','sms','whatsapp','email','calendar','dial','contacts','media','web-search','open_app'].includes(action.type))throw Error('Action not approved for AI');
     return {text:display||'I prepared an action for you to review.',action,error:''};
   }catch(e){return {text:display||'I could not validate the requested action.',action:null,error:`Proposed action rejected: ${e.message}`};}
 }
@@ -31,6 +31,7 @@ export function describeAction(action) {
   case'contacts':return 'Open contact picker';
   case'media':return a.query?`Open ${a.service==='youtube'?'YouTube':'SoundCloud'} search for: ${a.query}`:`Open ${a.service==='youtube'?'YouTube':'SoundCloud'}`;
   case'web-search':return `Search Google for: ${a.query}`;
+  case'open_app':return `Open ${a.app}`;
   default:throw Error('Action not supported');
  }
 }

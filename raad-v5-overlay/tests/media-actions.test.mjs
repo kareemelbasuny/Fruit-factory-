@@ -9,6 +9,9 @@ test('open YouTube and search music in YouTube or SoundCloud from Egyptian Arabi
  assert.deepEqual(parseDeviceCommand('شغل لي أغنية أم كلثوم على اليوتيوب'),{type:'media',service:'youtube',query:'أم كلثوم'});
  assert.deepEqual(parseDeviceCommand('يا رعد دور على عمرو دياب على ساوند كلاود'),{type:'media',service:'soundcloud',query:'عمرو دياب'});
  assert.deepEqual(parseDeviceCommand('open YouTube'),{type:'media',service:'youtube',query:''});
+ assert.deepEqual(parseDeviceCommand('search youtube for business ideas'),{type:'media',service:'youtube',query:'business ideas'});
+ assert.deepEqual(parseDeviceCommand('ابحث في يوتيوب عن اخبار مصر'),{type:'media',service:'youtube',query:'اخبار مصر'});
+ assert.deepEqual(parseDeviceCommand('يا رعد افتح برنامج اليوتيوب شغل لي أغنية كذا'),{type:'media',service:'youtube',query:'كذا'});
  assert.deepEqual(parseDeviceCommand('play jazz on SoundCloud'),{type:'media',service:'soundcloud',query:'jazz'});
 });
 test('web searching and launching approved installed apps',()=>{
