@@ -1,0 +1,48 @@
+name: Build RAAD Android APK (Free)
+on:
+  push:
+    branches: [raad-apk]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-raad-apk:
+    name: Compile offline-first RAAD Android app
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore verified RAAD project source
+        shell: bash
+        run: |
+          mkdir -p raad-source
+          cat raad-bundle/part-*.txt | base64 --decode > raad-source.zip
+          unzip -q raad-source.zip -d raad-source
+          test -s raad-source/android/app/src/main/AndroidManifest.xml
+          test -s raad-source/src/app.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Run all RAAD tests
+        working-directory: raad-source
+        run: npm test
+      - name: Bundle UI and original icons for offline Android use
+        working-directory: raad-source
+        run: npm run package:android
+      - name: Build installable debug-signed APK
+        working-directory: raad-source/android
+        run: gradle --no-daemon assembleDebug
+      - name: Save RAAD APK for Android download
+        uses: actions/upload-artifact@v4
+        with:
+          name: RAAD-AI-Android-APK
+          path: raad-source/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
