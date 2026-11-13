@@ -1,0 +1,48 @@
+name: RAAD OS 2.0 - Android AI APK
+on:
+  push:
+    branches: [raad-v2-chatgpt]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack RAAD v2 source
+        run: |
+          mkdir -p raad-v2-app
+          unzip -q raad-v2-bundle/source.zip -d raad-v2-app
+          test -s raad-v2-app/android/app/src/main/java/ai/raad/personal/ChatGPTConnector.java
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Run RAAD tests
+        working-directory: raad-v2-app
+        run: npm test
+      - name: Build offline UI into Android assets
+        working-directory: raad-v2-app
+        run: npm run package:android
+      - name: Compile APK
+        working-directory: raad-v2-app/android
+        run: gradle --no-daemon --stacktrace assembleDebug
+      - name: Inspect compiled package
+        working-directory: raad-v2-app
+        run: |
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RAAD-OS-v2-Android-APK
+          path: raad-v2-app/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+          if-no-files-found: error
