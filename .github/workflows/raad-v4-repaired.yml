@@ -15,7 +15,7 @@ jobs:
         run: |
           mkdir -p raad-v4-app
           unzip -q raad-v4-bundle/source.zip -d raad-v4-app
-          python raad-v4-bundle/repair-v4.py
+          # RAAD source ZIP contains the verified Android repairs.
           test -s raad-v4-app/android/app/src/main/java/ai/raad/personal/DeviceActionHandler.java
           test -s raad-v4-app/android/app/src/main/java/ai/raad/personal/WakeListeningService.java
       - uses: actions/setup-node@v4
