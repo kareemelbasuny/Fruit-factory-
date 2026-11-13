@@ -1,0 +1,55 @@
+name: RAAD OS 5 - Voice App Launcher and Media Search
+on:
+  push:
+    branches: [raad-v5-media-launcher]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-android-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack proven RAAD Android source
+        shell: bash
+        run: |
+          mkdir raad-v5-app
+          unzip -q raad-v4-bundle/source.zip -d raad-v5-app
+          cp raad-v4-fixes/WakePhrase.java raad-v5-app/android/app/src/main/java/ai/raad/personal/WakePhrase.java
+          cp raad-v4-fixes/MainActivity.java raad-v5-app/android/app/src/main/java/ai/raad/personal/MainActivity.java
+          cp -R raad-v5-overlay/src/. raad-v5-app/src/
+          cp -R raad-v5-overlay/android/. raad-v5-app/android/
+          cp -R raad-v5-overlay/tests/. raad-v5-app/tests/
+          cp raad-v5-overlay/README.md raad-v5-app/README.md
+          test -s raad-v5-app/android/app/src/main/java/ai/raad/personal/DeviceActionHandler.java
+          grep -q "ai.raad.personal.v5" raad-v5-app/android/app/build.gradle
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Run tests including voice commands and safe intents
+        working-directory: raad-v5-app
+        run: npm test
+      - name: Package offline RAAD dashboard and voice UI
+        working-directory: raad-v5-app
+        run: npm run package:android
+      - name: Build installable Android APK
+        working-directory: raad-v5-app/android
+        run: gradle --no-daemon assembleDebug
+      - name: Verify non-empty APK and checksum
+        run: |
+          test -s raad-v5-app/android/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum raad-v5-app/android/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RAAD-OS-v5-Media-Android-APK
+          path: raad-v5-app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
