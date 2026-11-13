@@ -15,6 +15,8 @@ jobs:
         run: |
           mkdir raad-v4-app
           unzip -q raad-v4-bundle/source.zip -d raad-v4-app
+          cp raad-v4-fixes/WakePhrase.java raad-v4-app/android/app/src/main/java/ai/raad/personal/WakePhrase.java
+          cp raad-v4-fixes/MainActivity.java raad-v4-app/android/app/src/main/java/ai/raad/personal/MainActivity.java
           test -s raad-v4-app/android/app/src/main/java/ai/raad/personal/WakeListeningService.java
           test -s raad-v4-app/android/app/src/main/java/ai/raad/personal/DeviceActionHandler.java
       - uses: actions/setup-node@v4
