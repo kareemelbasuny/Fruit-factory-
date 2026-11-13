@@ -1,0 +1,62 @@
+name: Build RAAD OS 5 - Android Media Commands APK
+on:
+  push:
+    branches: [raad-v5-media-launch]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-raad-v5-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore RAAD source with verified Android fixes and v5 app commands
+        shell: bash
+        run: |
+          mkdir raad-v5-app
+          unzip -q raad-v4-bundle/source.zip -d raad-v5-app
+          cp raad-v4-fixes/MainActivity.java raad-v5-app/android/app/src/main/java/ai/raad/personal/MainActivity.java
+          cp raad-v4-fixes/WakePhrase.java raad-v5-app/android/app/src/main/java/ai/raad/personal/WakePhrase.java
+          cp raad-v5-overrides/src-device.js raad-v5-app/src/device.js
+          cp raad-v5-overrides/src-voice-actions.js raad-v5-app/src/voice-actions.js
+          cp raad-v5-overrides/native-DeviceActionHandler.java raad-v5-app/android/app/src/main/java/ai/raad/personal/DeviceActionHandler.java
+          cp raad-v5-overrides/native-ChatGPTConnector.java raad-v5-app/android/app/src/main/java/ai/raad/personal/ChatGPTConnector.java
+          cp raad-v5-overrides/AndroidManifest.xml raad-v5-app/android/app/src/main/AndroidManifest.xml
+          cp raad-v5-overrides/android-build.gradle raad-v5-app/android/app/build.gradle
+          cp raad-v5-overrides/package.json raad-v5-app/package.json
+          cp raad-v5-overrides/media-actions.test.mjs raad-v5-app/tests/media-actions.test.mjs
+          cp raad-v5-overrides/README.md raad-v5-app/README.md
+          cd raad-v5-app
+          python ../raad-v5-overrides/patch-app.py
+          test -s android/app/src/main/java/ai/raad/personal/WakePhrase.java
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Run RAAD logic, device intent and UI smoke tests
+        working-directory: raad-v5-app
+        run: npm test
+      - name: Package updated offline-first app into Android assets
+        working-directory: raad-v5-app
+        run: npm run package:android
+      - name: Compile installable Android APK
+        working-directory: raad-v5-app/android
+        run: gradle --no-daemon --stacktrace assembleDebug
+      - name: Validate generated Android APK
+        shell: bash
+        run: |
+          test -s raad-v5-app/android/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum raad-v5-app/android/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RAAD-OS-v5-Media-APK
+          path: raad-v5-app/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+          if-no-files-found: error
