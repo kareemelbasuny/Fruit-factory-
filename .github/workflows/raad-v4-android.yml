@@ -1,0 +1,51 @@
+name: RAAD OS 4.0 · Voice and Wake APK
+on:
+  push:
+    branches: [raad-v4-voice-wake]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-apk:
+    name: Build and verify RAAD Voice APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract RAAD v4 original source
+        run: |
+          mkdir -p raad-v4-app
+          unzip -q raad-v4-bundle/source.zip -d raad-v4-app
+          test -s raad-v4-app/android/app/src/main/java/ai/raad/personal/WakeListeningService.java
+          test -s raad-v4-app/android/app/src/main/java/ai/raad/personal/DeviceActions.java
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Execute RAAD unit and UI smoke tests
+        working-directory: raad-v4-app
+        run: npm test
+      - name: Package voice-first offline UI and application icons
+        working-directory: raad-v4-app
+        run: npm run package:android
+      - name: Compile Android APK
+        working-directory: raad-v4-app/android
+        run: gradle --no-daemon --stacktrace assembleDebug
+      - name: Verify compiled APK artifact
+        working-directory: raad-v4-app
+        run: |
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Publish downloadable Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RAAD-OS-v4-Voice-Android-APK
+          path: raad-v4-app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
